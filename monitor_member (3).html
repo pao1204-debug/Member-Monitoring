@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor Member — Margin Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #181c22;
+    --border: #252a33;
+    --border2: #2e3540;
+    --accent: #00c896;
+    --accent2: #0088ff;
+    --warn: #ff6b35;
+    --danger: #ff3d3d;
+    --text: #e8edf5;
+    --text2: #8a95a8;
+    --text3: #4a5568;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ───── TOP BAR ───── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar-brand span { color: var(--text2); font-weight: 400; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  /* ───── AUTH SCREEN ───── */
+  #auth-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 52px);
+    gap: 32px;
+    padding: 40px;
+  }
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 48px 56px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+  }
+  .auth-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+  }
+  .auth-card h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .auth-card p { color: var(--text2); margin-bottom: 32px; line-height: 1.6; font-size: 14px; }
+
+  .btn-ms {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 24px;
+    background: #0078d4;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-ms:hover { background: #106ebe; }
+
+  .auth-note {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 16px;
+  }
+
+  /* ───── CONFIG SCREEN ───── */
+  #config-screen {
+    display: none;
+    padding: 32px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .config-header {
+    margin-bottom: 32px;
+  }
+  .config-header h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .config-header p { color: var(--text2); }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .config-card label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .config-card input, .config-card select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .config-card input:focus, .config-card select:focus {
+    border-color: var(--accent);
+  }
+  .config-card .hint {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 6px;
+  }
+
+  .file-map-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+  .file-map-table th {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 8px 12px;
+    text-align: left;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .file-map-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .file-map-table td input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 7px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    outline: none;
+  }
+  .file-map-table td input:focus { border-color: var(--accent); }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-family: var(--mono); font-weight: 600; }
+  .tag-report { background: rgba(0,200,150,0.12); color: var(--accent); }
+  .tag-position { background: rgba(0,136,255,0.12); color: var(--accent2); }
+  .tag-collateral { background: rgba(255,107,53,0.12); color: var(--warn); }
+  .tag-margin { background: rgba(255,61,61,0.12); color: var(--danger); }
+
+  /* ───── MAIN APP ───── */
+  #app-screen {
+    display: none;
+    padding: 0;
+  }
+
+  .app-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 0 12px;
+    flex: 1;
+    max-width: 320px;
+  }
+  .search-wrap svg { color: var(--text3); flex-shrink: 0; }
+  .search-wrap input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 8px 0;
+    width: 100%;
+  }
+  .search-wrap input::placeholder { color: var(--text3); }
+
+  .filter-select {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #00e6ad; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(255,61,61,0.15); color: var(--danger); border: 1px solid rgba(255,61,61,0.3); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ───── SUMMARY CARDS ───── */
+  .summary-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-card {
+    background: var(--surface);
+    padding: 16px 24px;
+  }
+  .summary-card .label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .summary-card .value {
+    font-size: 22px;
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--text);
+  }
+  .summary-card .sub {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+  .summary-card.danger .value { color: var(--danger); }
+  .summary-card.warn .value { color: var(--warn); }
+  .summary-card.ok .value { color: var(--accent); }
+
+  /* ───── TABLE ───── */
+  .table-wrap {
+    overflow: auto;
+    max-height: calc(100vh - 280px);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+  }
+  thead th:hover { color: var(--accent); }
+  thead th.sorted-asc::after { content: ' ▲'; color: var(--accent); }
+  thead th.sorted-desc::after { content: ' ▼'; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.shortage { background: rgba(255,61,61,0.04); }
+  tbody tr.shortage:hover { background: rgba(255,61,61,0.08); }
+
+  td {
+    padding: 9px 14px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  td.mono { font-family: var(--mono); font-size: 11px; }
+  td.num { font-family: var(--mono); font-size: 11px; text-align: right; }
+  td.num.negative { color: var(--danger); }
+  td.num.positive { color: var(--accent); }
+
+  .account-code {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent2);
+    letter-spacing: 0.04em;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 500;
+  }
+  .badge-client { background: rgba(0,136,255,0.12); color: var(--accent2); }
+  .badge-prop { background: rgba(255,107,53,0.12); color: var(--warn); }
+  .badge-shortage { background: rgba(255,61,61,0.12); color: var(--danger); }
+  .badge-ok { background: rgba(0,200,150,0.12); color: var(--accent); }
+
+  /* ───── STATUS BAR ───── */
+  .statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    position: sticky;
+    bottom: 0;
+  }
+
+  /* ───── LOADING ───── */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,12,15,0.85);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-overlay.active { display: flex; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: var(--mono); font-size: 13px; color: var(--text2); }
+
+  /* ───── TOAST ───── */
+  .toast {
+    position: fixed;
+    bottom: 48px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 300;
+    animation: slideIn 0.2s ease;
+  }
+  .toast.show { display: flex; }
+  .toast.error { border-color: rgba(255,61,61,0.4); }
+  .toast.success { border-color: rgba(0,200,150,0.4); }
+  @keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* ───── MISC ───── */
+  .spacer { flex: 1; }
+  .divider { width: 1px; height: 20px; background: var(--border); }
+  .section-full { grid-column: 1 / -1; }
+  .config-section-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 24px 0 12px;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .user-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #000;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-green { background: var(--accent); }
+  .dot-red { background: var(--danger); }
+
+  #empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    color: var(--text3);
+    gap: 12px;
+  }
+  #empty-state svg { opacity: 0.3; }
+  #empty-state p { font-size: 14px; }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    background: var(--surface);
+  }
+  .tab {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count {
+    display: inline-block;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 9px;
+    margin-left: 4px;
+    color: var(--text3);
+  }
+  .tab.active .tab-count { background: rgba(0,200,150,0.15); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+    </svg>
+    MONITOR MEMBER <span>/ Margin Dashboard</span>
+  </div>
+  <div class="topbar-right" id="topbar-right">
+    <div id="user-info-bar" style="display:none" class="user-info">
+      <div class="user-avatar" id="user-initials">?</div>
+      <span id="user-name-bar"></span>
+    </div>
+    <button class="btn btn-secondary btn-sm" id="btn-logout" style="display:none" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-icon">
+      <svg width="32" height="32" viewBox="0 0 23 23" fill="white">
+        <path d="M11 11H0V0h11v11z"/><path d="M23 11H12V0h11v11z"/>
+        <path d="M11 23H0V12h11v11z"/><path d="M23 23H12V12h11v11z"/>
+      </svg>
+    </div>
+    <h2>Sign in with Microsoft</h2>
+    <p>Connect to your OneDrive to read CSV reports and build the Margin Monitor dashboard.</p>
+    <button class="btn-ms" onclick="signIn()">
+      <svg width="20" height="20" viewBox="0 0 23 23" fill="white">
+        <path d="M11 11H0V0h11v11z"/><path d="M23 11H12V0h11v11z"/>
+        <path d="M11 23H0V12h11v11z"/><path d="M23 23H12V12h11v11z"/>
+      </svg>
+      Continue with Microsoft
+    </button>
+    <p class="auth-note">Requires Files.Read permission to access OneDrive CSV files.<br>No data is stored — all processing happens in your browser.</p>
+  </div>
+</div>
+
+<!-- CONFIG SCREEN -->
+<div id="config-screen">
+  <div class="config-header">
+    <h2>Configure File Paths</h2>
+    <p>Set the OneDrive paths for each CSV report. These are relative to your OneDrive root (e.g. <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">Reports/9308.csv</code>).</p>
+  </div>
+
+  <p class="config-section-title">CSV File Mapping</p>
+  <div class="config-card section-full" style="margin-bottom:16px">
+    <table class="file-map-table">
+      <thead>
+        <tr>
+          <th>Report</th>
+          <th>Description</th>
+          <th>Type</th>
+          <th>OneDrive Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">9308.csv</td>
+          <td style="color:var(--text2)">Margin Requirement by Account & Commodity</td>
+          <td><span class="tag tag-margin">Margin</span></td>
+          <td><input type="text" id="path-9308" placeholder="e.g. Reports/9308.csv" value="9308.csv"/></td>
+        </tr>
+        <tr>
+          <td class="mono">3402.csv</td>
+          <td style="color:var(--text2)">Position Report (Long/Short by Instrument)</td>
+          <td><span class="tag tag-position">Position</span></td>
+          <td><input type="text" id="path-3402" placeholder="e.g. Reports/3402.csv" value="3402.csv"/></td>
+        </tr>
+        <tr>
+          <td class="mono">4203.csv</td>
+          <td style="color:var(--text2)">Settlement Variation by Account</td>
+          <td><span class="tag tag-report">Settlement</span></td>
+          <td><input type="text" id="path-4203" placeholder="e.g. Reports/4203.csv" value="4203.csv"/></td>
+        </tr>
+        <tr>
+          <td class="mono">5313.csv</td>
+          <td style="color:var(--text2)">Collateral Balance (Cash + Security)</td>
+          <td><span class="tag tag-collateral">Collateral</span></td>
+          <td><input type="text" id="path-5313" placeholder="e.g. Reports/5313.csv" value="5313.csv"/></td>
+        </tr>
+        <tr>
+          <td class="mono">4702.csv</td>
+          <td style="color:var(--text2)">Summary: Margin vs Cash Balance</td>
+          <td><span class="tag tag-report">Summary</span></td>
+          <td><input type="text" id="path-4702" placeholder="e.g. Reports/4702.csv" value="4702.csv"/></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="config-section-title">Options</p>
+  <div class="config-grid">
+    <div class="config-card">
+      <label>Member ID Filter</label>
+      <input type="text" id="member-id" placeholder="e.g. KINGSFORD" value="KINGSFORD"/>
+      <p class="hint">Leave blank to show all members</p>
+    </div>
+    <div class="config-card">
+      <label>Default View</label>
+      <select id="default-view">
+        <option value="all">All Accounts</option>
+        <option value="shortage">Shortage Only</option>
+        <option value="client">Client Only</option>
+        <option value="prop">Proprietary Only</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="btn btn-primary" onclick="loadData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Load from OneDrive
+    </button>
+    <button class="btn btn-secondary" onclick="loadSampleData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Load Sample Data
+    </button>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <div class="summary-bar" id="summary-bar">
+    <div class="summary-card">
+      <div class="label">Total Accounts</div>
+      <div class="value" id="s-accounts">—</div>
+      <div class="sub" id="s-accounts-sub"></div>
+    </div>
+    <div class="summary-card danger" id="sc-shortage">
+      <div class="label">Shortage Accounts</div>
+      <div class="value" id="s-shortage">—</div>
+      <div class="sub" id="s-shortage-sub"></div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Total Margin Req.</div>
+      <div class="value" id="s-margin">—</div>
+      <div class="sub">THB</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Available Cash</div>
+      <div class="value" id="s-cash">—</div>
+      <div class="sub">Client + Prop</div>
+    </div>
+  </div>
+
+  <div class="tabs" id="view-tabs">
+    <div class="tab active" data-view="all" onclick="setView('all',this)">All <span class="tab-count" id="tc-all">0</span></div>
+    <div class="tab" data-view="shortage" onclick="setView('shortage',this)">Shortage <span class="tab-count" id="tc-shortage">0</span></div>
+    <div class="tab" data-view="client" onclick="setView('client',this)">Client <span class="tab-count" id="tc-client">0</span></div>
+    <div class="tab" data-view="prop" onclick="setView('prop',this)">Proprietary <span class="tab-count" id="tc-prop">0</span></div>
+    <div class="spacer"></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 8px">
+      <button class="btn btn-secondary btn-sm" onclick="exportCSV()">↓ Export</button>
+      <button class="btn btn-secondary btn-sm" onclick="showConfig()">⚙ Settings</button>
+      <button class="btn btn-primary btn-sm" onclick="loadData()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="app-toolbar">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search-input" placeholder="Search account, commodity…" oninput="applyFilters()"/>
+    </div>
+    <select class="filter-select" id="filter-commodity" onchange="applyFilters()">
+      <option value="">All Commodities</option>
+    </select>
+    <select class="filter-select" id="filter-sort" onchange="applyFilters()">
+      <option value="margin-desc">Margin ↓ (Highest)</option>
+      <option value="margin-asc">Margin ↑ (Lowest)</option>
+      <option value="account">Account Code</option>
+      <option value="shortage">Shortage First</option>
+    </select>
+    <div class="spacer"></div>
+    <div style="font-size:11px;font-family:var(--mono);color:var(--text3)" id="data-timestamp"></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead>
+        <tr>
+          <th onclick="sortBy('accountCode')">Account Code</th>
+          <th onclick="sortBy('type')">Type</th>
+          <th onclick="sortBy('commodity')">Commodity</th>
+          <th onclick="sortBy('longPos')" style="text-align:right">Long</th>
+          <th onclick="sortBy('shortPos')" style="text-align:right">Short</th>
+          <th onclick="sortBy('spanReq')" style="text-align:right">SPAN Req</th>
+          <th onclick="sortBy('finalReq')" style="text-align:right">Final Req</th>
+          <th onclick="sortBy('settlement')" style="text-align:right">Settlement Var</th>
+          <th onclick="sortBy('cashBalance')" style="text-align:right">Cash Balance</th>
+          <th onclick="sortBy('excess')" style="text-align:right">Excess / Shortage</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div id="empty-state" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:80px;color:var(--text3);gap:12px;text-align:center">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p>No records match your filters</p>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <span id="status-rows">0 rows</span>
+    <span id="status-member" style="color:var(--accent)"></span>
+    <span id="status-date"></span>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Loading files from OneDrive…</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── MSAL CONFIG ──────────────────────────────────────────────────────────────
+// NOTE: Replace CLIENT_ID with your Azure App Registration Client ID.
+// Register an app at https://portal.azure.com → Azure AD → App Registrations
+// → Add redirect URI = this page's URL, enable Files.Read + User.Read scopes.
+const MSAL_CONFIG = {
+  clientId: 'YOUR_CLIENT_ID_HERE', // ← Replace with your Azure App Client ID
+  authority: 'https://login.microsoftonline.com/common',
+  redirectUri: window.location.href.split('#')[0].split('?')[0],
+};
+const SCOPES = ['Files.Read', 'User.Read'];
+
+let msalInstance = null;
+let accessToken = null;
+let currentUser = null;
+
+// ─── DATA STATE ───────────────────────────────────────────────────────────────
+let allRows = [];
+let filteredRows = [];
+let currentView = 'all';
+let currentSort = { col: 'finalReq', dir: 'desc' };
+
+// ─── MSAL INIT ────────────────────────────────────────────────────────────────
+async function initMSAL() {
+  if (!window.msal) {
+    await loadScript('https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js');
+  }
+  msalInstance = new msal.PublicClientApplication({
+    auth: MSAL_CONFIG,
+    cache: { cacheLocation: 'sessionStorage' }
+  });
+  await msalInstance.initialize();
+
+  // Check for redirect response
+  const response = await msalInstance.handleRedirectPromise();
+  if (response) {
+    accessToken = response.accessToken;
+    currentUser = response.account;
+    afterLogin();
+    return;
+  }
+
+  // Check existing session
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    try {
+      const result = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
+      accessToken = result.accessToken;
+      currentUser = accounts[0];
+      afterLogin();
+    } catch (e) {
+      showAuthScreen();
+    }
+  } else {
+    showAuthScreen();
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function signIn() {
+  if (MSAL_CONFIG.clientId === 'YOUR_CLIENT_ID_HERE') {
+    showToast('⚠ No Azure Client ID configured. Loading sample data instead.', 'error');
+    loadSampleData();
+    return;
+  }
+  try {
+    const result = await msalInstance.loginPopup({ scopes: SCOPES });
+    accessToken = result.accessToken;
+    currentUser = result.account;
+    afterLogin();
+  } catch (e) {
+    showToast('Sign-in failed: ' + e.message, 'error');
+  }
+}
+
+function logout() {
+  accessToken = null;
+  currentUser = null;
+  allRows = [];
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('config-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('btn-logout').style.display = 'none';
+  document.getElementById('user-info-bar').style.display = 'none';
+}
+
+function afterLogin() {
+  if (currentUser) {
+    const name = currentUser.name || currentUser.username || 'User';
+    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('user-initials').textContent = initials;
+    document.getElementById('user-name-bar').textContent = name;
+    document.getElementById('user-info-bar').style.display = 'flex';
+    document.getElementById('btn-logout').style.display = 'inline-flex';
+  }
+  showConfigScreen();
+}
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('config-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+function showConfigScreen() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('config-screen').style.display = 'block';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+function showConfig() {
+  document.getElementById('config-screen').style.display = 'block';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+// ─── ONEDRIVE FILE FETCH ──────────────────────────────────────────────────────
+async function fetchOneDriveFile(path) {
+  const encodedPath = encodeURIComponent(path);
+  const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedPath}:/content`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) throw new Error(`Failed to fetch ${path}: ${resp.status} ${resp.statusText}`);
+  return await resp.text();
+}
+
+function parseCSV(text) {
+  const result = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, dynamicTyping: true });
+  return result.data;
+}
+
+// ─── MAIN DATA LOAD ───────────────────────────────────────────────────────────
+async function loadData() {
+  if (!accessToken) { showToast('Not signed in', 'error'); return; }
+  showLoading('Fetching CSV files from OneDrive…');
+  document.getElementById('config-screen').style.display = 'none';
+
+  const paths = {
+    r9308: document.getElementById('path-9308').value.trim(),
+    r3402: document.getElementById('path-3402').value.trim(),
+    r4203: document.getElementById('path-4203').value.trim(),
+    r5313: document.getElementById('path-5313').value.trim(),
+    r4702: document.getElementById('path-4702').value.trim(),
+  };
+  const memberId = document.getElementById('member-id').value.trim().toUpperCase();
+
+  try {
+    updateLoading('Reading 9308 — Margin requirements…');
+    const text9308 = await fetchOneDriveFile(paths.r9308);
+
+    updateLoading('Reading 3402 — Position data…');
+    const text3402 = await fetchOneDriveFile(paths.r3402);
+
+    updateLoading('Reading 4203 — Settlement variation…');
+    const text4203 = await fetchOneDriveFile(paths.r4203);
+
+    updateLoading('Reading 5313 — Collateral…');
+    const text5313 = await fetchOneDriveFile(paths.r5313);
+
+    updateLoading('Reading 4702 — Summary…');
+    const text4702 = await fetchOneDriveFile(paths.r4702);
+
+    updateLoading('Processing & joining data…');
+
+    const data9308 = parseCSV(text9308);
+    const data3402 = parseCSV(text3402);
+    const data4203 = parseCSV(text4203);
+    const data5313 = parseCSV(text5313);
+    const data4702 = parseCSV(text4702);
+
+    processData(data9308, data3402, data4203, data5313, data4702, memberId);
+    hideLoading();
+    showToast('Data loaded from OneDrive', 'success');
+  } catch (e) {
+    hideLoading();
+    showConfigScreen();
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ─── SAMPLE DATA LOAD ─────────────────────────────────────────────────────────
+async function loadSampleData() {
+  showLoading('Loading sample data…');
+  document.getElementById('config-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'none';
+
+  // We'll use the embedded data read from the uploaded CSVs
+  await new Promise(r => setTimeout(r, 600));
+
+  try {
+    updateLoading('Fetching uploaded CSVs…');
+    const files = ['9308.csv','3402.csv','4203.csv','5313.csv','4702.csv'];
+    const texts = {};
+    for (const f of files) {
+      try {
+        const r = await fetch(f);
+        if (r.ok) texts[f] = await r.text();
+      } catch(e) {}
+    }
+
+    // Use embedded sample data if files not available
+    const d9308 = texts['9308.csv'] ? parseCSV(texts['9308.csv']) : getSample9308();
+    const d3402 = texts['3402.csv'] ? parseCSV(texts['3402.csv']) : getSample3402();
+    const d4203 = texts['4203.csv'] ? parseCSV(texts['4203.csv']) : [];
+    const d5313 = texts['5313.csv'] ? parseCSV(texts['5313.csv']) : [];
+    const d4702 = texts['4702.csv'] ? parseCSV(texts['4702.csv']) : getSample4702();
+
+    processData(d9308, d3402, d4203, d5313, d4702, 'KINGSFORD');
+    hideLoading();
+    showToast('Sample data loaded', 'success');
+  } catch(e) {
+    hideLoading();
+    showConfigScreen();
+    showToast('Error loading sample data: ' + e.message, 'error');
+  }
+}
+
+// ─── POWER QUERY LOGIC (replicated in JS) ────────────────────────────────────
+function processData(data9308, data3402, data4203, data5313, data4702, memberId) {
+  // ── Step 1: Filter 9308 by member ──
+  let margin = data9308;
+  if (memberId) margin = margin.filter(r => (r['Member ID']||'').toString().toUpperCase() === memberId);
+
+  // ── Step 2: Aggregate positions from 3402 ──
+  // Group by Account + Product (Combined Commodity)
+  // Product is extracted from 3402.Product column (e.g. "SET50_FUT" → "SET50")
+  const posMap = {}; // key: "account|commodity"
+  for (const r of data3402) {
+    const acc = pad8(r['Account']);
+    const rawProd = (r['Product'] || '');
+    const commodity = rawProd.replace(/_FUT$|_OPT$|_PUT$|_CALL$/,'');
+    const key = `${acc}|${commodity}`;
+    if (!posMap[key]) posMap[key] = { longPos: 0, shortPos: 0 };
+    posMap[key].longPos  += toNum(r['Current Long']);
+    posMap[key].shortPos += toNum(r['Current Short']);
+  }
+
+  // ── Step 3: Aggregate settlement variation from 4203 ──
+  // Sum "Total Amount" by account
+  const settlMap = {};
+  for (const r of data4203) {
+    const acc = pad8(r['Account']);
+    if (!settlMap[acc]) settlMap[acc] = 0;
+    settlMap[acc] += toNum(r['Total Amount']);
+  }
+
+  // ── Step 4: Cash balance from 5313 (Settlement coverage, Client+Prop summed) ──
+  // Sum "Balance Available" for Settlement coverage
+  const cashMap = {};
+  for (const r of data5313) {
+    if ((r['Coverage']||'').toLowerCase().includes('settlement')) {
+      const type = (r['Client/ Proprietary']||r['Client/Proprietary']||'').trim();
+      const key = type;
+      if (!cashMap[key]) cashMap[key] = 0;
+      cashMap[key] += toNum(r['Balance Available']||r['Appraised Amount']);
+    }
+  }
+  // Total cash available (Client + Prop settlement balance)
+  const totalCash = (cashMap['Client']||0) + (cashMap['Proprietary']||0);
+
+  // ── Step 5: Summary from 4702 ──
+  const summaryClient = data4702.find(r => (r['Client/ Proprietary']||'').trim() === 'Client');
+  const summaryProp   = data4702.find(r => (r['Client/ Proprietary']||'').trim() === 'Proprietary');
+
+  // ── Step 6: Build Merge1 — join margin with positions ──
+  // Deduplicate: for each (Account, Combined Commodity) in 9308 take the Final Requirement
+  // Positions come from 3402 grouped by account+commodity (no duplicate instruments)
+  const marginByAccCom = {};
+  for (const r of margin) {
+    const acc = pad8(r['Account Code']);
+    const com = (r['Combined Commodity']||'').toString().trim();
+    const key = `${acc}|${com}`;
+    if (!marginByAccCom[key]) {
+      marginByAccCom[key] = {
+        accountCode: acc,
+        type: (r['Account Client/ Proprietary']||'').trim(),
+        commodity: com,
+        spanReq: toNum(r['Margin Requirement SPAN Requirement']),
+        finalReq: toNum(r['Margin Requirement Final Requirement']),
+      };
+    } else {
+      // merge: sum if duplicates
+      marginByAccCom[key].spanReq  += toNum(r['Margin Requirement SPAN Requirement']);
+      marginByAccCom[key].finalReq += toNum(r['Margin Requirement Final Requirement']);
+    }
+  }
+
+  // ── Step 7: Build final row set ──
+  const rows = [];
+  for (const [key, m] of Object.entries(marginByAccCom)) {
+    const pos = posMap[key] || { longPos: 0, shortPos: 0 };
+    const settlement = settlMap[m.accountCode] || 0;
+
+    // Cash balance: use 4702 summary per type for account-level estimation
+    // Proportional: account's margin / total margin * total cash balance
+    // We use account-level final req as proxy weight
+    const typeTotalMargin = summaryClient ? toNum(summaryClient['Margin Requirement Amount (A)']) : 0;
+    const propTotalMargin = summaryProp   ? toNum(summaryProp  ['Margin Requirement Amount (A)']) : 0;
+    const typeTotalCash   = m.type === 'Client'      ? toNum(summaryClient?.['Available Cash Balance(D)']||0)
+                          : m.type === 'Proprietary' ? toNum(summaryProp?.  ['Available Cash Balance(D)']||0) : 0;
+    const typeMarginTotal = m.type === 'Client' ? typeTotalMargin : propTotalMargin;
+    const cashBalance = typeMarginTotal > 0 ? (m.finalReq / typeMarginTotal) * typeTotalCash : 0;
+    const excess = cashBalance - m.finalReq;
+
+    rows.push({
+      accountCode: m.accountCode,
+      type:        m.type,
+      commodity:   m.commodity,
+      longPos:     pos.longPos,
+      shortPos:    pos.shortPos,
+      spanReq:     m.spanReq,
+      finalReq:    m.finalReq,
+      settlement:  settlement,
+      cashBalance: cashBalance,
+      excess:      excess,
+    });
+  }
+
+  allRows = rows;
+
+  // ── Populate commodity filter ──
+  const commodities = [...new Set(rows.map(r => r.commodity))].sort();
+  const sel = document.getElementById('filter-commodity');
+  sel.innerHTML = '<option value="">All Commodities</option>';
+  commodities.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+
+  // ── Summary cards ──
+  const totalAccounts   = [...new Set(rows.map(r => r.accountCode))].length;
+  const shortageAccs    = [...new Set(rows.filter(r => r.excess < 0).map(r => r.accountCode))];
+  const totalMargin     = rows.reduce((s,r) => s + r.finalReq, 0);
+  const clientCash      = toNum(summaryClient?.['Available Cash Balance(D)']||0);
+  const propCash        = toNum(summaryProp?.  ['Available Cash Balance(D)']||0);
+
+  document.getElementById('s-accounts').textContent    = fmtNum(totalAccounts, 0);
+  document.getElementById('s-accounts-sub').textContent = memberId || 'All Members';
+  document.getElementById('s-shortage').textContent    = fmtNum(shortageAccs.length, 0);
+  document.getElementById('s-shortage-sub').textContent = shortageAccs.length > 0 ? 'accounts need attention' : 'all clear';
+  document.getElementById('s-margin').textContent      = fmtAmt(totalMargin);
+  document.getElementById('s-cash').textContent        = fmtAmt(clientCash + propCash);
+
+  document.getElementById('sc-shortage').className = 'summary-card ' + (shortageAccs.length > 0 ? 'danger' : 'ok');
+
+  // ── Tab counts ──
+  document.getElementById('tc-all').textContent       = rows.length;
+  document.getElementById('tc-shortage').textContent  = rows.filter(r => r.excess < 0).length;
+  document.getElementById('tc-client').textContent    = rows.filter(r => r.type === 'Client').length;
+  document.getElementById('tc-prop').textContent      = rows.filter(r => r.type === 'Proprietary').length;
+
+  // Status
+  const now = new Date();
+  document.getElementById('data-timestamp').textContent = 'Updated ' + now.toLocaleTimeString();
+  document.getElementById('status-member').textContent  = memberId ? 'Member: ' + memberId : '';
+  document.getElementById('status-date').textContent    = now.toLocaleDateString();
+
+  // Show app
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('config-screen').style.display = 'none';
+
+  applyFilters();
+}
+
+// ─── FILTERS & SORT ───────────────────────────────────────────────────────────
+function setView(view, el) {
+  currentView = view;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const search    = document.getElementById('search-input').value.toLowerCase();
+  const commodity = document.getElementById('filter-commodity').value;
+  const sortVal   = document.getElementById('filter-sort').value;
+
+  let rows = allRows.slice();
+
+  // View filter
+  if (currentView === 'shortage') rows = rows.filter(r => r.excess < 0);
+  else if (currentView === 'client')   rows = rows.filter(r => r.type === 'Client');
+  else if (currentView === 'prop')     rows = rows.filter(r => r.type === 'Proprietary');
+
+  // Search
+  if (search) rows = rows.filter(r =>
+    r.accountCode.toLowerCase().includes(search) ||
+    r.commodity.toLowerCase().includes(search) ||
+    r.type.toLowerCase().includes(search)
+  );
+
+  // Commodity filter
+  if (commodity) rows = rows.filter(r => r.commodity === commodity);
+
+  // Sort
+  if (sortVal === 'margin-desc') rows.sort((a,b) => b.finalReq - a.finalReq);
+  else if (sortVal === 'margin-asc') rows.sort((a,b) => a.finalReq - b.finalReq);
+  else if (sortVal === 'account') rows.sort((a,b) => a.accountCode.localeCompare(b.accountCode));
+  else if (sortVal === 'shortage') rows.sort((a,b) => a.excess - b.excess);
+
+  filteredRows = rows;
+  renderTable(rows);
+  document.getElementById('status-rows').textContent = rows.length + ' rows';
+}
+
+function sortBy(col) {
+  if (currentSort.col === col) {
+    currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort.col = col;
+    currentSort.dir = 'desc';
+  }
+  filteredRows.sort((a,b) => {
+    const v1 = a[col], v2 = b[col];
+    const dir = currentSort.dir === 'asc' ? 1 : -1;
+    if (typeof v1 === 'number') return dir * (v1 - v2);
+    return dir * String(v1).localeCompare(String(v2));
+  });
+  renderTable(filteredRows);
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('table-body');
+  const empty = document.getElementById('empty-state');
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(r => {
+    const shortage = r.excess < 0;
+    const typeClass = r.type === 'Proprietary' ? 'badge-prop' : 'badge-client';
+    const statusBadge = shortage
+      ? `<span class="badge badge-shortage">SHORTAGE</span>`
+      : `<span class="badge badge-ok">OK</span>`;
+
+    return `<tr class="${shortage ? 'shortage' : ''}">
+      <td class="account-code">${r.accountCode}</td>
+      <td><span class="badge ${typeClass}">${r.type === 'Proprietary' ? 'PROP' : 'CLIENT'}</span></td>
+      <td class="mono">${r.commodity}</td>
+      <td class="num">${r.longPos ? fmtNum(r.longPos,0) : '—'}</td>
+      <td class="num">${r.shortPos ? fmtNum(r.shortPos,0) : '—'}</td>
+      <td class="num">${r.spanReq ? fmtAmt(r.spanReq) : '—'}</td>
+      <td class="num">${r.finalReq ? fmtAmt(r.finalReq) : '—'}</td>
+      <td class="num ${r.settlement < 0 ? 'negative' : r.settlement > 0 ? 'positive' : ''}">${r.settlement !== 0 ? fmtAmt(r.settlement) : '—'}</td>
+      <td class="num">${r.cashBalance ? fmtAmt(r.cashBalance) : '—'}</td>
+      <td class="num ${shortage ? 'negative' : 'positive'}">${fmtAmt(r.excess)}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const headers = ['Account Code','Type','Commodity','Long','Short','SPAN Req','Final Req','Settlement Var','Cash Balance','Excess/Shortage','Status'];
+  const rows = filteredRows.map(r => [
+    r.accountCode, r.type, r.commodity,
+    r.longPos, r.shortPos,
+    r.spanReq, r.finalReq, r.settlement,
+    r.cashBalance.toFixed(2), r.excess.toFixed(2),
+    r.excess < 0 ? 'SHORTAGE' : 'OK'
+  ]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `monitor_member_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('Exported ' + filteredRows.length + ' rows', 'success');
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function toNum(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  const n = parseFloat(String(v).replace(/,/g,''));
+  return isNaN(n) ? 0 : n;
+}
+function pad8(v) {
+  if (v === null || v === undefined) return '00000000';
+  return String(v).padStart(8,'0');
+}
+function fmtNum(n, dec=2) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function fmtAmt(n) {
+  if (Math.abs(n) >= 1e6) return (n/1e6).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1}) + 'M';
+  if (Math.abs(n) >= 1e3) return (n/1e3).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1}) + 'K';
+  return n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+
+function showLoading(msg) {
+  document.getElementById('loading-text').textContent = msg || 'Loading…';
+  document.getElementById('loading').classList.add('active');
+}
+function updateLoading(msg) { document.getElementById('loading-text').textContent = msg; }
+function hideLoading() { document.getElementById('loading').classList.remove('active'); }
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  const icon = type === 'error' ? '⚠' : type === 'success' ? '✓' : 'ℹ';
+  t.textContent = icon + ' ' + msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ─── SAMPLE DATA ──────────────────────────────────────────────────────────────
+function getSample9308() {
+  // Minimal sample based on uploaded file structure
+  return [
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'1202540','Combined Commodity':'GO','Margin Requirement SPAN Requirement':9418500,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':1203300,'Margin Requirement Final Requirement':8215200},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'70115510','Combined Commodity':'BBL','Margin Requirement SPAN Requirement':3099200,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':500500,'Margin Requirement Final Requirement':2598700},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'70115510','Combined Commodity':'KBANK','Margin Requirement SPAN Requirement':3129600,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':1248400,'Margin Requirement Final Requirement':1881200},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'44490','Combined Commodity':'GO','Margin Requirement SPAN Requirement':2511600,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':346920,'Margin Requirement Final Requirement':2164680},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'7367380','Combined Commodity':'GO','Margin Requirement SPAN Requirement':4036500,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':515700,'Margin Requirement Final Requirement':3520800},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'7367380','Combined Commodity':'SET50','Margin Requirement SPAN Requirement':2175000,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':1905460,'Margin Requirement Final Requirement':269540},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'115990','Combined Commodity':'SET50','Margin Requirement SPAN Requirement':299640,'Margin Requirement Available Net Option Value':-2020260,'Margin Requirement Intraday Options Premium':41540,'Margin Requirement Intraday Settlement Variation':0,'Margin Requirement Final Requirement':2278360},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'115950','Combined Commodity':'SET50','Margin Requirement SPAN Requirement':219120,'Margin Requirement Available Net Option Value':-1826700,'Margin Requirement Intraday Options Premium':-360,'Margin Requirement Intraday Settlement Variation':29160,'Margin Requirement Final Requirement':2017020},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'2700140','Combined Commodity':'SET50','Margin Requirement SPAN Requirement':881250,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':27680,'Margin Requirement Final Requirement':853570},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'1224450','Combined Commodity':'SET50','Margin Requirement SPAN Requirement':1359375,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':6980,'Margin Requirement Final Requirement':1352395},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Proprietary','Account Code':'66665980','Combined Commodity':'KTC','Margin Requirement SPAN Requirement':0,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':10126,'Margin Requirement Final Requirement':0},
+    {Settlement_Domain:'Derivatives domain','Member ID':'KINGSFORD','Member No':15,'Account Client/ Proprietary':'Client','Account Code':'70156560','Combined Commodity':'SAWAD','Margin Requirement SPAN Requirement':276000,'Margin Requirement Available Net Option Value':0,'Margin Requirement Intraday Options Premium':0,'Margin Requirement Intraday Settlement Variation':-14000,'Margin Requirement Final Requirement':290000},
+  ];
+}
+
+function getSample3402() {
+  return [
+    {'Member ID':'KINGSFORD','Member No':15,'Account':1202540,'Client/Proprietary':'Client','Market':'TFEX','Product':'GO_FUT','Instrument':'GOM26','Futures/ Options':'Futures','Current Long':105,'Current Short':0},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':70115510,'Client/Proprietary':'Client','Market':'TFEX','Product':'BBL_FUT','Instrument':'BBLM26','Futures/ Options':'Futures','Current Long':520,'Current Short':0},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':70115510,'Client/Proprietary':'Client','Market':'TFEX','Product':'KBANK_FUT','Instrument':'KBANKM26','Futures/ Options':'Futures','Current Long':480,'Current Short':0},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':44490,'Client/Proprietary':'Client','Market':'TFEX','Product':'GO_FUT','Instrument':'GOM26','Futures/ Options':'Futures','Current Long':28,'Current Short':0},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':7367380,'Client/Proprietary':'Client','Market':'TFEX','Product':'GO_FUT','Instrument':'GOM26','Futures/ Options':'Futures','Current Long':45,'Current Short':0},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':7367380,'Client/Proprietary':'Client','Market':'TFEX','Product':'SET50_FUT','Instrument':'S50M26','Futures/ Options':'Futures','Current Long':290,'Current Short':0},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':115990,'Client/Proprietary':'Client','Market':'TFEX','Product':'SET50_FUT','Instrument':'S50M26','Futures/ Options':'Futures','Current Long':0,'Current Short':1362},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':115950,'Client/Proprietary':'Client','Market':'TFEX','Product':'SET50_FUT','Instrument':'S50M26','Futures/ Options':'Futures','Current Long':6,'Current Short':996},
+    {'Member ID':'KINGSFORD','Member No':15,'Account':1224450,'Client/Proprietary':'Client','Market':'TFEX','Product':'SET50_FUT','Instrument':'S50M26','Futures/ Options':'Futures','Current Long':1500,'Current Short':0},
+  ];
+}
+
+function getSample4702() {
+  return [
+    {'Settlement Domain':'Derivatives domain','Member No':15,'Member ID':'KINGSFORD','Client/ Proprietary':'Client','Margin Requirement Currency':'THB','Margin Requirement Amount (A)':59555123,'Collateral Amount Available':0,'Collateral Amount Utilized (B)':0,'Collateral Shortage(C) MAX(A-B, 0)':59555123,'Net Settlement Amount':0,'Available Cash Balance(D)':163612835.94,'Amount Shortage(E) MAX(C-D, 0)':0,'Amount Excess MAX(D-C, 0)':104057712.94,'Security Deposit Value of Security(F)':5015928,'Security Deposit Shortage(G) MAX(E of Client + E of Proprietary - F, 0)':0,'Call Amount (=E)':0},
+    {'Settlement Domain':'Derivatives domain','Member No':15,'Member ID':'KINGSFORD','Client/ Proprietary':'Proprietary','Margin Requirement Currency':'THB','Margin Requirement Amount (A)':111403.2,'Collateral Amount Available':0,'Collateral Amount Utilized (B)':0,'Collateral Shortage(C) MAX(A-B, 0)':111403.2,'Net Settlement Amount':0,'Available Cash Balance(D)':722850.3,'Amount Shortage(E) MAX(C-D, 0)':0,'Amount Excess MAX(D-C, 0)':611447.1,'Security Deposit Value of Security(F)':5015928,'Security Deposit Shortage(G) MAX(E of Client + E of Proprietary - F, 0)':0,'Call Amount (=E)':0},
+  ];
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initMSAL().catch(() => showAuthScreen());
+});
+</script>
+</body>
+</html>
